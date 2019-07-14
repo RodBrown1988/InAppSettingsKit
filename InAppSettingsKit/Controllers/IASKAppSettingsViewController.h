@@ -21,10 +21,13 @@
 #import <InAppSettingsKit/IASKViewController.h>
 #import <InAppSettingsKit/IASKSpecifier.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 @class IASKSettingsReader;
 @class IASKAppSettingsViewController;
 
-@protocol IASKSettingsDelegate
+@protocol IASKSettingsDelegate <NSObject>
+
 - (void)settingsViewControllerDidEnd:(IASKAppSettingsViewController*)sender;
 
 @optional
@@ -72,7 +75,7 @@ shouldPresentMailComposeViewController:(MFMailComposeViewController*)mailCompose
 
 #pragma mark - Custom MultiValues
 - (NSArray*)settingsViewController:(IASKAppSettingsViewController*)sender valuesForSpecifier:(IASKSpecifier*)specifier;
-- (NSArray*)settingsViewController:(IASKAppSettingsViewController*)sender titlesForSpecifier:(IASKSpecifier*)specifier;
+- (NSArray<NSString*>*)settingsViewController:(IASKAppSettingsViewController*)sender titlesForSpecifier:(IASKSpecifier*)specifier;
 
 #pragma mark - respond to button taps
 - (void)settingsViewController:(IASKAppSettingsViewController*)sender buttonTappedForKey:(NSString*)key __attribute__((deprecated)); // use the method below with specifier instead
@@ -83,15 +86,23 @@ shouldPresentMailComposeViewController:(MFMailComposeViewController*)mailCompose
 
 @interface IASKAppSettingsViewController : UITableViewController <IASKViewController, UITextFieldDelegate, MFMailComposeViewControllerDelegate>
 
-@property (nonatomic, assign) IBOutlet id delegate;
-@property (nonatomic, copy) NSString *file;
-@property (nonatomic, assign) BOOL showCreditsFooter;
-@property (nonatomic, assign) IBInspectable BOOL showDoneButton;
-@property (nonatomic, retain) NSSet *hiddenKeys;
+@property (nonatomic, weak, nullable) IBOutlet id<IASKSettingsDelegate> delegate;
+@property (nonatomic, copy, null_resettable) NSString *file;
+
+@property (nonatomic) BOOL showCreditsFooter;
+@property (nonatomic) IBInspectable BOOL showDoneButton;
 @property (nonatomic) IBInspectable BOOL neverShowPrivacySettings;
 @property (nonatomic) IBInspectable BOOL cellLayoutMarginsFollowReadableWidth;
 
+
+@property (nonatomic, copy) NSSet<NSString *> *hiddenKeys;
+- (void)setHiddenKeys:(NSSet<NSString *> *)hiddenKeys animated:(BOOL)animated;
+
+
 - (void)synchronizeSettings;
-- (IBAction)dismiss:(id)sender;
-- (void)setHiddenKeys:(NSSet*)hiddenKeys animated:(BOOL)animated;
+
+- (IBAction)dismiss:(nullable id)sender;
+
 @end
+
+NS_ASSUME_NONNULL_END

@@ -67,8 +67,8 @@
 #pragma mark - selection
 
 - (void)selectRowAtIndexPath:(NSIndexPath *)indexPath {
-
-    if (indexPath == self.checkedItem) {
+	NSString *key = _specifier.key;
+    if (indexPath == self.checkedItem || key.length == 0) {
         [self.tableView deselectRowAtIndexPath:indexPath animated:YES];
         return;
     }
@@ -82,10 +82,11 @@
 
     [self.settingsStore setObject:[values objectAtIndex:indexPath.row] forKey:[_specifier key]];
     [self.settingsStore synchronize];
+	
     [[NSNotificationCenter defaultCenter] postNotificationName:kIASKAppSettingChanged
                                                         object:self
                                                       userInfo:@{
-                                                          _specifier.key: values[indexPath.row]
+                                                          key: values[indexPath.row]
                                                       }];
 };
 

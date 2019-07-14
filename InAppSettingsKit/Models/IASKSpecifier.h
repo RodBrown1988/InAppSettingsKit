@@ -17,11 +17,13 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 
+NS_ASSUME_NONNULL_BEGIN
+
 @class IASKSettingsReader;
 
 @interface IASKSpecifier : NSObject
 
-@property (nonatomic, retain) NSDictionary  *specifierDict;
+@property (nonatomic, strong) NSDictionary  *specifierDict;
 @property (nonatomic, weak) IASKSettingsReader *settingsReader;
 
 - (id)initWithSpecifier:(NSDictionary*)specifier;
@@ -29,48 +31,68 @@
 - (id)initWithSpecifier:(NSDictionary *)specifier
         radioGroupValue:(NSString *)radioGroupValue;
 
-- (void)setMultipleValuesDictValues:(NSArray*)values titles:(NSArray*)titles;
+- (void)setMultipleValuesDictValues:(nullable NSArray *)values
+							 titles:(nullable NSArray<NSString *> *)titles;
 
 - (void)sortIfNeeded;
 
-- (NSString*)localizedObjectForKey:(NSString*)key;
-- (NSString*)title;
-- (NSString*)subtitle;
-- (NSString*)placeholder;
-- (NSString*)key;
-- (NSString*)type;
-- (NSString*)titleForCurrentValue:(id)currentValue;
-- (NSInteger)multipleValuesCount;
-- (NSArray*)multipleValues;
-- (NSArray*)multipleTitles;
-- (NSArray *)multipleIconNames;
-- (NSString*)file;
-- (id)defaultValue;
-- (id)defaultStringValue;
-- (BOOL)defaultBoolValue;
-- (id)trueValue;
-- (id)falseValue;
-- (float)minimumValue;
-- (float)maximumValue;
-- (NSString*)minimumValueImage;
-- (NSString*)maximumValueImage;
-- (BOOL)isSecure;
+- (nullable NSString*)localizedObjectForKey:(NSString *)key;
+
+@property (nonatomic, readonly, nullable) NSString *file;
+
+@property (nonatomic, readonly, nullable) NSString *title;
+@property (nonatomic, readonly, nullable) NSString *subtitle;
+@property (nonatomic, readonly, nullable) NSString *placeholder;
+@property (nonatomic, readonly, nullable) NSString *key;
+@property (nonatomic, readonly, nullable) NSString *type;
+
+- (nullable NSString *)titleForCurrentValue:(id)currentValue;
+
+@property (nonatomic, readonly, nullable) id defaultValue;
+@property (nonatomic, readonly, nullable) NSString *defaultStringValue;
+@property (nonatomic, readonly) BOOL defaultBoolValue;
+
+@property (nonatomic, readonly, nullable) NSString *radioGroupValue;
+
+@property (nonatomic, readonly) NSInteger multipleValuesCount;
+@property (nonatomic, readonly, nullable) NSArray *multipleValues;
+@property (nonatomic, readonly, nullable) NSArray<NSString *> *multipleTitles;
+@property (nonatomic, readonly, nullable) NSArray *multipleIconNames;
+
+@property (nonatomic, readonly, nullable) id trueValue;
+@property (nonatomic, readonly, nullable) id falseValue;
+
+@property (nonatomic, readonly) float minimumValue;
+@property (nonatomic, readonly) float maximumValue;
+@property (nonatomic, readonly, nullable) NSString *minimumValueImage;
+@property (nonatomic, readonly, nullable) NSString *maximumValueImage;
+
+@property (nonatomic, readonly) BOOL isSecure;
+@property (nonatomic, readonly) UIKeyboardType keyboardType;
+@property (nonatomic, readonly) UITextAutocapitalizationType autocapitalizationType;
+@property (nonatomic, readonly) UITextAutocorrectionType autoCorrectionType;
+
+@property (nonatomic, readonly, nullable) NSString *footerText;
+
+@property (nonatomic, readonly, nullable) Class viewControllerClass;
+@property (nonatomic, readonly, nullable) SEL viewControllerSelector;
+@property (nonatomic, readonly, nullable) NSString *viewControllerStoryBoardFile;
+@property (nonatomic, readonly, nullable) NSString *viewControllerStoryBoardID;
+@property (nonatomic, readonly, nullable) NSString *segueIdentifier;
+
+@property (nonatomic, readonly, nullable) Class buttonClass;
+@property (nonatomic, readonly, nullable) SEL buttonAction;
+
+@property (nonatomic, readonly, nullable) UIImage *cellImage;
+@property (nonatomic, readonly, nullable) UIImage *highlightedCellImage;
+
+@property (nonatomic, readonly) BOOL adjustsFontSizeToFitWidth;
+@property (nonatomic, readonly) NSTextAlignment textAlignment;
+
+@property (nonatomic, readonly, nullable) NSArray *userInterfaceIdioms;
+
 - (BOOL)displaySortedByTitle;
-- (UIKeyboardType)keyboardType;
-- (UITextAutocapitalizationType)autocapitalizationType;
-- (UITextAutocorrectionType)autoCorrectionType;
-- (NSString*)footerText;
-- (Class)viewControllerClass;
-- (SEL)viewControllerSelector;
-- (NSString*)viewControllerStoryBoardFile;
-- (NSString*)viewControllerStoryBoardID;
-- (NSString*)segueIdentifier;
-- (Class)buttonClass;
-- (SEL)buttonAction;
-- (UIImage *)cellImage;
-- (UIImage *)highlightedCellImage;
-- (BOOL)adjustsFontSizeToFitWidth;
-- (NSTextAlignment)textAlignment;
-- (NSArray *)userInterfaceIdioms;
-- (NSString *)radioGroupValue;
+
 @end
+
+NS_ASSUME_NONNULL_END

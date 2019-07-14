@@ -43,7 +43,12 @@
     if (!types) {
         types = @[kIASKPSMultiValueSpecifier, kIASKPSTitleValueSpecifier, kIASKPSRadioGroupSpecifier];
     }
-    return [types containsObject:[self type]];
+	NSString *type = self.type;
+	if (type != nil) {
+    	return [types containsObject:type];
+	} else {
+		return NO;
+	}
 }
 
 - (id)initWithSpecifier:(NSDictionary *)specifier

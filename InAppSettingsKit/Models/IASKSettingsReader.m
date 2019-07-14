@@ -135,8 +135,9 @@
         IASKSpecifier *newSpecifier = [[IASKSpecifier alloc] initWithSpecifier:specifierDictionary];
         newSpecifier.settingsReader = self;
         [newSpecifier sortIfNeeded];
-
-        if ([self.hiddenKeys containsObject:newSpecifier.key]) {
+		
+		NSString *key = newSpecifier.key;
+        if (key.length > 0 && [self.hiddenKeys containsObject:key]) {
             continue;
         }
 

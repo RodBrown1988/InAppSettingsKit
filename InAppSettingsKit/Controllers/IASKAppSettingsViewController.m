@@ -94,10 +94,16 @@ CGRect IASKCGRectSwap(CGRect rect);
 
 - (void)setFile:(NSString *)file {
     _file = [file copy];
-    self.tableView.contentOffset = CGPointMake(0, -self.tableView.contentInset.top);
-    self.settingsReader = nil; // automatically initializes itself
+	
+	if ([self isViewLoaded]) {
+		IASK_IF_IOS11_OR_GREATER(self.tableView.contentOffset = CGPointMake(0, -self.tableView.adjustedContentInset.top);)
+		IASK_IF_PRE_IOS11(self.tableView.contentOffset = CGPointMake(0, -self.tableView.contentInset.top);)
+	}
+	self.settingsReader = nil; // automatically initializes itself
     if (!_reloadDisabled) {
-		[self.tableView reloadData];
+		if ([self isViewLoaded]) {
+			[self.tableView reloadData];
+		}
 		[self createSelections];
 	}
 }
@@ -256,11 +262,10 @@ CGRect IASKCGRectSwap(CGRect rect);
 	[self setHiddenKeys:theHiddenKeys animated:NO];
 }
 
-
 - (void)setHiddenKeys:(NSSet*)theHiddenKeys animated:(BOOL)animated {
     if (_hiddenKeys != theHiddenKeys) {
         NSSet *oldHiddenKeys = _hiddenKeys;
-        _hiddenKeys = theHiddenKeys;
+        _hiddenKeys = [theHiddenKeys copy];
         
         if (animated) {			
             NSMutableSet *showKeys = [NSMutableSet setWithSet:oldHiddenKeys];
@@ -427,8 +432,9 @@ CGRect IASKCGRectSwap(CGRect rect);
 
 - (CGFloat)tableView:(UITableView *)tableView heightForRowAtIndexPath:(NSIndexPath *)indexPath {
 	IASKSpecifier *specifier  = [self.settingsReader specifierForIndexPath:indexPath];
-	if ([specifier.type isEqualToString:kIASKTextViewSpecifier]) {
-		CGFloat height = (CGFloat)[self.rowHeights[specifier.key] doubleValue];
+	NSString *key = specifier.key;
+	if ([specifier.type isEqualToString:kIASKTextViewSpecifier] && key.length > 0) {
+		CGFloat height = (CGFloat)[self.rowHeights[key] doubleValue];
 		return height > 0 ? height : UITableViewAutomaticDimension;
 	} else if ([[specifier type] isEqualToString:kIASKCustomViewSpecifier]) {
 		if ([self.delegate respondsToSelector:@selector(tableView:heightForSpecifier:)]) {
@@ -679,8 +685,11 @@ CGRect IASKCGRectSwap(CGRect rect);
 		cell.textLabel.textAlignment = specifier.textAlignment;
 		cell.accessoryType = (specifier.textAlignment == NSTextAlignmentLeft) ? UITableViewCellAccessoryDisclosureIndicator : UITableViewCellAccessoryNone;
 	} else if ([specifier.type isEqualToString:kIASKPSRadioGroupSpecifier]) {
-		NSInteger index = [specifier.multipleValues indexOfObject:specifier.radioGroupValue];
-		cell.textLabel.text = [self.settingsReader titleForId:specifier.multipleTitles[index]];
+		NSString *radioGroupValue = specifier.radioGroupValue;
+		if (radioGroupValue != nil) {
+			NSInteger index = [specifier.multipleValues indexOfObject:radioGroupValue];
+			cell.textLabel.text = [self.settingsReader titleForId:specifier.multipleTitles[index]];
+		}
 		[_selections[indexPath.section] updateSelectionInCell:cell indexPath:indexPath];
 	} else {
 		cell.textLabel.text = specifier.title;
@@ -706,7 +715,8 @@ CGRect IASKCGRectSwap(CGRect rect);
 	}
   
 	IASKSpecifier *specifier  = [self.settingsReader specifierForIndexPath:indexPath];
-	if([noSelectionTypes containsObject:specifier.type]) {
+	NSString *type = specifier.type;
+	if(type.length > 0 && [noSelectionTypes containsObject:type]) {
 		return nil;
 	} else {
 		return indexPath;
@@ -737,11 +747,12 @@ CGRect IASKCGRectSwap(CGRect rect);
         IASKPSTextFieldSpecifierViewCell *textFieldCell = (id)[tableView cellForRowAtIndexPath:indexPath];
         [textFieldCell.textField becomeFirstResponder];		
 	} else if ([[specifier type] isEqualToString:kIASKPSChildPaneSpecifier]) {
-        if ([specifier viewControllerStoryBoardID]){
+		NSString *storyboardID = [specifier viewControllerStoryBoardID];
+        if (storyboardID.length > 0) {
             NSString *storyBoardFileFromSpecifier = [specifier viewControllerStoryBoardFile];
             storyBoardFileFromSpecifier = storyBoardFileFromSpecifier && storyBoardFileFromSpecifier.length > 0 ? storyBoardFileFromSpecifier : [[NSBundle mainBundle].infoDictionary objectForKey:@"UIMainStoryboardFile"];
             UIStoryboard *storyBoard = [UIStoryboard storyboardWithName:storyBoardFileFromSpecifier bundle:nil];
-            UIViewController * vc = [storyBoard instantiateViewControllerWithIdentifier:[specifier viewControllerStoryBoardID]];
+            UIViewController * vc = [storyBoard instantiateViewControllerWithIdentifier:storyboardID];
             vc.view.tintColor = self.view.tintColor;
             [self.navigationController pushViewController:vc animated:YES];
             return;
@@ -809,8 +820,12 @@ CGRect IASKCGRectSwap(CGRect rect);
         
     } else if ([[specifier type] isEqualToString:kIASKOpenURLSpecifier]) {
         [tableView deselectRowAtIndexPath:indexPath animated:YES];
-		IASK_IF_IOS11_OR_GREATER([UIApplication.sharedApplication openURL:(NSURL *)[NSURL URLWithString:[specifier localizedObjectForKey:kIASKFile]] options:@{} completionHandler:nil];);
-		IASK_IF_PRE_IOS11([UIApplication.sharedApplication openURL:(NSURL *)[NSURL URLWithString:[specifier localizedObjectForKey:kIASKFile]]];);
+		
+		NSString *file = [specifier localizedObjectForKey:kIASKFile];
+		if (file != nil) {
+			IASK_IF_IOS11_OR_GREATER([UIApplication.sharedApplication openURL:(NSURL *)[NSURL URLWithString:file] options:@{} completionHandler:nil];);
+			IASK_IF_PRE_IOS11([UIApplication.sharedApplication openURL:(NSURL *)[NSURL URLWithString:file]];);
+		}
     } else if ([[specifier type] isEqualToString:kIASKButtonSpecifier]) {
         [tableView deselectRowAtIndexPath:indexPath animated:YES];
         if ([self.delegate respondsToSelector:@selector(settingsViewController:buttonTappedForSpecifier:)]) {
@@ -820,7 +835,10 @@ CGRect IASKCGRectSwap(CGRect rect);
             NSLog(@"InAppSettingsKit Warning: -settingsViewController:buttonTappedForKey: is deprecated. Please use -settingsViewController:buttonTappedForSpecifier:");
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-            [self.delegate settingsViewController:self buttonTappedForKey:[specifier key]];
+			NSString *key = [specifier key];
+			if (key.length > 0) {
+				[self.delegate settingsViewController:self buttonTappedForKey:key];
+			}
 #pragma clang diagnostic pop
         } else {
             // legacy code, provided for backward compatibility
@@ -839,8 +857,9 @@ CGRect IASKCGRectSwap(CGRect rect);
         [tableView deselectRowAtIndexPath:indexPath animated:YES];
 	
 		MFMailComposeViewController *mailViewController = [[MFMailComposeViewController alloc] init];
-		if ([specifier localizedObjectForKey:kIASKMailComposeSubject]) {
-			[mailViewController setSubject:[specifier localizedObjectForKey:kIASKMailComposeSubject]];
+		NSString *composeSubject = [specifier localizedObjectForKey:kIASKMailComposeSubject];
+		if (composeSubject != nil) {
+			[mailViewController setSubject:composeSubject];
 		}
 		if ([[specifier specifierDict] objectForKey:kIASKMailComposeToRecipents]) {
 			[mailViewController setToRecipients:[[specifier specifierDict] objectForKey:kIASKMailComposeToRecipents]];
@@ -860,12 +879,17 @@ CGRect IASKCGRectSwap(CGRect rect);
 			if ([self.delegate respondsToSelector:@selector(settingsViewController:mailComposeBodyForSpecifier:)]) {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-				[mailViewController setMessageBody:[self.delegate settingsViewController:self
-															 mailComposeBodyForSpecifier:specifier] isHTML:isHTML];
+				NSString *messageBody = [self.delegate settingsViewController:self mailComposeBodyForSpecifier:specifier];
+				if (messageBody.length > 0) {
+					[mailViewController setMessageBody:messageBody isHTML:isHTML];
+				}
 #pragma clang diagnostic pop
 			}
 			else {
-				[mailViewController setMessageBody:[specifier localizedObjectForKey:kIASKMailComposeBody] isHTML:isHTML];
+				NSString *composeBody = [specifier localizedObjectForKey:kIASKMailComposeBody];
+				if (composeBody != nil) {
+					[mailViewController setMessageBody:composeBody isHTML:isHTML];
+				}
 			}
 		}
 		
@@ -1052,9 +1076,9 @@ static NSDictionary *oldUserDefaults = nil;
 		NSLog(@"need to init from delegate");
 		if ([self.delegate respondsToSelector:@selector(settingsViewController:valuesForSpecifier:)] &&
 			[self.delegate respondsToSelector:@selector(settingsViewController:titlesForSpecifier:)])
-		{
-			[specifier setMultipleValuesDictValues:[self.delegate settingsViewController:self valuesForSpecifier:specifier]
-											titles:[self.delegate settingsViewController:self titlesForSpecifier:specifier]];
+		{			
+			[specifier setMultipleValuesDictValues: [self.delegate settingsViewController:self valuesForSpecifier:specifier]
+											titles: [self.delegate settingsViewController:self titlesForSpecifier:specifier]];
 		}
 		[specifier sortIfNeeded];
 	}
