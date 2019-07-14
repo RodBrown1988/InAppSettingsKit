@@ -37,9 +37,9 @@
 }
 
 - (void)loadView {
-    self.webView = [[UIWebView alloc] init];
+    self.webView = [[WKWebView alloc] init];
     self.webView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
-    self.webView.delegate = self;
+	self.webView.navigationDelegate = self;
     
     self.view = self.webView;
 }
@@ -54,20 +54,30 @@
 	[self.webView loadRequest:[NSURLRequest requestWithURL:self.url]];
 }
 
-- (void)webViewDidFinishLoad:(UIWebView *)webView {
+- (void)webView:(WKWebView *)webView didFinishNavigation:(WKNavigation *)navigation {
 	self.navigationItem.rightBarButtonItem = nil;
-	self.title = self.customTitle.length ? self.customTitle : [self.webView stringByEvaluatingJavaScriptFromString:@"document.title"];
+	
+	if (self.customTitle.length > 0) {
+		self.title = self.customTitle;
+	} else {
+		self.title = nil;
+		[webView evaluateJavaScript:@"document.title" completionHandler:^(id _Nullable response, NSError * _Nullable error) {
+			self.title = (NSString *)response;
+		}];
+	}
 }
 
-- (BOOL)webView:(UIWebView *)webView shouldStartLoadWithRequest:(NSURLRequest *)request navigationType:(UIWebViewNavigationType)navigationType {
-	NSURL *newURL = [request URL];
+- (void)webView:(WKWebView *)webView decidePolicyForNavigationAction:(nonnull WKNavigationAction *)navigationAction decisionHandler:(nonnull void (^)(WKNavigationActionPolicy))decisionHandler {
+	NSURL *newURL = [navigationAction.request URL];
 	
 	// intercept mailto URL and send it to an in-app Mail compose view instead
 	if ([[newURL scheme] isEqualToString:@"mailto"]) {
 
 		NSArray *rawURLparts = [[newURL resourceSpecifier] componentsSeparatedByString:@"?"];
 		if (rawURLparts.count > 2) {
-			return NO; // invalid URL
+			// invalid URL
+			decisionHandler(WKNavigationActionPolicyCancel);
+			return;
 		}
 		
 		MFMailComposeViewController *mailViewController = [[MFMailComposeViewController alloc] init];
@@ -129,16 +139,19 @@
 		[self presentViewController:mailViewController animated:YES completion:^{
 			[UIApplication sharedApplication].statusBarStyle = savedStatusBarStyle;
 		}];
-		return NO;
+		decisionHandler(WKNavigationActionPolicyCancel);
+		return;
 	}
 	
 	// open inline if host is the same, otherwise, pass to the system
 	if (![newURL host] || ![self.url host] || [[newURL host] isEqualToString:(NSString *)[self.url host]]) {
-		return YES;
+		decisionHandler(WKNavigationActionPolicyAllow);
+		return;
 	}
 	IASK_IF_IOS11_OR_GREATER([UIApplication.sharedApplication openURL:newURL options:@{} completionHandler:nil];);
 	IASK_IF_PRE_IOS11([UIApplication.sharedApplication openURL:newURL];);
-	return NO;
+	decisionHandler(WKNavigationActionPolicyCancel);
+	return;
 }
 
 - (void)mailComposeController:(MFMailComposeViewController*)controller didFinishWithResult:(MFMailComposeResult)result error:(NSError*)error {
